@@ -18,18 +18,32 @@ rotate_thresh = 2
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 dirr = 'all'
+n_img_to_try = 1														# Test run tesseract on these many randomly selected images from 200 images.
 
 # Improvement: Do for each possible font to reduce time.
-# Preprocessing on image : like thresholding.
+# Preprocessing on image : like thresholding on image. To check whether it improves performance or not.
 
 # read img at given path
 def read_img(img):
+	'''
+	img: PIL Image object
+
+	returns:
+	text in the img.
+	'''
 	text = pytesseract.image_to_string(img, lang='eng')
 	text = re.sub(r'[^\x00-\x7F]+', '', text)                                  # remove non-ascii chars.
 	return text.lower()
 
 # search for a word in given sentences.
 def search_for(word, sents):
+	'''
+	word: word we need to search
+	sents: List of all the sentences.
+
+	returns:
+	Howmany instances of word founded. Also prints results. 
+	'''
 	print('searching for' + '.' * 10 + word)
 	first, found = True, 0
 	for ind, j in enumerate(sents):
@@ -46,8 +60,9 @@ def search_for(word, sents):
 
 	return found
 
+# Choose random images form 200 images & check results.
 all_imgs = os.listdir(dirr)
-for _ in range(1):
+for _ in range(n_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
@@ -64,6 +79,7 @@ for _ in range(1):
 		total_found += found
 
 	img.show()
+	# Image might be rotated. So, try different angles.
 	if total_found < rotate_thresh: 
 		print('Failed to found more than 2. Rotating by 270')
 		img1 = img.transpose(Image.ROTATE_270)
