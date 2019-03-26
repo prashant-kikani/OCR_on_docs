@@ -1,3 +1,4 @@
+# To copy all the images of 20 dir in 1 dir.
 import os, shutil
 
 target_folder = r'G:\ML\Big Data\task\OTH-M\all'
