@@ -14,16 +14,16 @@ Shipper, Consignee, Chargeable Weight, Product Description
 # Format is, key : a tuple. 1st element of tuple is bool showing whether its distributive word or not. 2nd item is, all the synonyms.
 imp = {
 	'mawb': (False, ['mawb', 'master', 'awb', 'airway', 'bill']),
-	'origin': (False, ['origin']),
 	'destination': (False, ['destination']),
-	'departure': (False, ['departure', 'loading', 'discharge']),
+	'departure': (False, ['departure', 'loading', 'discharge', 'origin']),
 	'agent': (True, ['agent']),
 	'shipper': (True, ['shipper', 'shpr']),
 	'consignee': (True, ['consignee', 'cons']),
-	'weight': (False, ['weight', 'kilo', 'kgs']),
+	'weight': (False, ['weight', 'wght', 'g.w', 'kilo', 'kgs']),
 	'discription': (True, ['discription']) 
 }
 
+hor_proj_thresh = 30000  # if horizontal projection standerd deviation is less than this than rotate else not. 
 rotate_thresh = 2	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -100,6 +100,44 @@ def found_it(text, imp):
 		total_found += found
 	return total_found, sents
 
+# Horizontal projection for detecting image is rotated or not.
+def is_rotate(path):
+	'''
+	path: path of image
+
+	return
+	to rotate or not.
+	'''
+	img = cv2.imread(path, 0)
+	print('img shape', img.shape)
+	# Also one other method is hough transform.
+	proj = np.sum(img, 1)
+	print(proj.shape)
+	std = proj.std() # / (img.shape[0])
+	print('std', std)
+	if std > hor_proj_thresh:
+		return False
+	return True
+
+
+def dilate_erode(path):
+	img = cv2.imread(path, 0)
+	kernel = np.ones((5,5),np.uint8)
+	erd = cv2.erode(img, kernel, iterations = 5)
+	cv2.namedWindow('erode', cv2.WINDOW_NORMAL)
+	cv2.resizeWindow('erode', 800,800)
+	cv2.imshow('erode', erd)
+	dil = cv2.dilate(img, kernel, iterations = 1)
+	cv2.namedWindow('dilate', cv2.WINDOW_NORMAL)
+	cv2.resizeWindow('dilate', 800,800)
+	cv2.imshow('dilate', dil)
+	tmp = cv2.dilate(img, kernel, iterations = 5)
+	both = cv2.erode(tmp, kernel, iterations = 1)
+	cv2.namedWindow('both', cv2.WINDOW_NORMAL)
+	cv2.resizeWindow('both', 800,800)
+	cv2.imshow('both', both)
+	cv2.waitKey(0)
+
 
 # Choose random images form 200 images & check results.
 all_imgs = os.listdir(dirr)
@@ -107,22 +145,29 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img = Image.open(dirr + '/' + f)
+	img_name = dirr + '/' + f # dirr + '/' + '2216_5.jpg'
+	dilate_erode(img_name)
+	rotate_ans = is_rotate(path = img_name)
+	img = Image.open(img_name)
+	if rotate_ans:
+		img = img.transpose(Image.ROTATE_270)
+
 	text = read_img(img = img)
 	total_found, sents = found_it(text, imp)	
-
 	img.show()
+
 	# Image might be rotated. So, try different angles.
 	if total_found < rotate_thresh: 
-		print('Failed to found more than 2. Image might be rotated. Rotating by 270')
-		img1 = img.transpose(Image.ROTATE_270)
+		print('Failed to found more than 2. Image might be rotated. Rotating by 90')
+		img = Image.open(img_name)
+		img1 = img.transpose(Image.ROTATE_90)
 		text = read_img(img = img1)
 		total_found, sents = found_it(text, imp)
 		img1.show()
 
 		if total_found < rotate_thresh:
-			print('Again failed to found more than 2. Image might be rotated. Rotating by 90')
-			img1 = img.transpose(Image.ROTATE_90)
+			print('Again failed to found more than 2. Image might be rotated. Rotating by 270')
+			img1 = img.transpose(Image.ROTATE_270)
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
 			img1.show()
@@ -133,7 +178,6 @@ for _ in range(no_img_to_try):
 	words = [i.split() for i in sents]
 	words = list(itertools.chain.from_iterable(words))   						# flatten
 	# all the word level work do here.
-
 
 
 
