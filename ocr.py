@@ -158,7 +158,7 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + '1644_3.jpg' # dirr + '/' + '2216_5.jpg'
+	img_name = dirr + '/' + f # dirr + '/' + '2216_5.jpg'
 	dilate_erode(img_name)
 	rotate_ans = is_rotate(path = img_name)
 	img = Image.open(img_name)
