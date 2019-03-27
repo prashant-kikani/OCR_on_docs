@@ -23,8 +23,8 @@ imp = {
 	'discription': (True, ['discription']) 
 }
 
-hor_proj_thresh = 30000  # if horizontal projection standerd deviation is less than this than rotate else not. 
 rotate_thresh = 2	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
+hor_proj_thresh = 30000
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 dirr = 'all'
@@ -122,20 +122,32 @@ def is_rotate(path):
 
 def dilate_erode(path):
 	img = cv2.imread(path, 0)
-	kernel = np.ones((5,5),np.uint8)
-	erd = cv2.erode(img, kernel, iterations = 5)
+	# kernel = np.ones((5,5),np.uint8)
+	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 5))
+	dil = cv2.erode(img, kernel, iterations = 1)
 	cv2.namedWindow('erode', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('erode', 800,800)
-	cv2.imshow('erode', erd)
-	dil = cv2.dilate(img, kernel, iterations = 1)
-	cv2.namedWindow('dilate', cv2.WINDOW_NORMAL)
+	cv2.imshow('erode', dil)
+	_, contours, hierarchy = cv2.findContours(dil, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+	im2 = img.copy()
+	for cnt in contours:
+	        x, y, w, h = cv2.boundingRect(cnt)
+	        cv2.rectangle(im2, (x, y), (x + w, y + h), (0, 255, 0), 2)
+	cv2.namedWindow('final', cv2.WINDOW_NORMAL)
+	cv2.resizeWindow('final', 800,800)
+	cv2.imshow('final', im2)
+
+	'''
+	erd = cv2.erode(img, kernel, iterations = 1)
+	cv2.namedWindow('erode', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('dilate', 800,800)
-	cv2.imshow('dilate', dil)
+	cv2.imshow('dilate', erd)
 	tmp = cv2.dilate(img, kernel, iterations = 5)
 	both = cv2.erode(tmp, kernel, iterations = 1)
 	cv2.namedWindow('both', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('both', 800,800)
 	cv2.imshow('both', both)
+	'''
 	cv2.waitKey(0)
 
 
@@ -145,7 +157,7 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + f # dirr + '/' + '2216_5.jpg'
+	img_name = dirr + '/' + '1644_3.jpg' # dirr + '/' + '2216_5.jpg'
 	dilate_erode(img_name)
 	rotate_ans = is_rotate(path = img_name)
 	img = Image.open(img_name)
