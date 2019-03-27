@@ -23,6 +23,7 @@ imp = {
 	'discription': (True, ['discription']) 
 }
 
+# Only using this if horizontal flipping is there.
 rotate_thresh = 2	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
 
 
