@@ -23,8 +23,9 @@ imp = {
 	'discription': (True, ['discription']) 
 }
 
+hor_proj_thresh = 30000   # rotate image if horizontal projection standerd deviation is less than this.
 rotate_thresh = 2	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
-hor_proj_thresh = 30000
+
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 dirr = 'all'
