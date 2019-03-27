@@ -11,9 +11,19 @@ Shipper, Consignee, Chargeable Weight, Product Description
 
 '''
 
-imp = ['mawb', 'master', 'awb', 'carrier', 'destination', 'loading', 'depature', 'discharge', 'agent', 'shipper', 'shpr', 
-	   'consignee', 'cons', 'weight', 'description']
-dis = ['agent', 'shipper', 'shpr', 'consignee', 'cons', 'description']                      # discriptive.
+# Format is, key : a tuple. 1st element of tuple is bool showing whether its distributive word or not. 2nd item is, all the synonyms.
+imp = {
+	'awb': (False, ['awb', 'master', 'mawb', 'airway', 'bill']),
+	'origin': (False, ['origin']),
+	'destination': (False, ['destination']),
+	'departure': (False, ['departure', 'loading', 'discharge']),
+	'agent': (True, ['agent']),
+	'shipper': (True, ['shipper', 'shpr']),
+	'consignee': (True, ['consignee', 'cons']),
+	'weight': (False, ['weight', 'kilo', 'kgs']),
+	'discription': (True, ['discription']) 
+}
+
 rotate_thresh = 2
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -36,7 +46,7 @@ def read_img(img):
 	return text.lower()
 
 # search for a word in given sentences.
-def search_for(word, sents):
+def search_for(words, sents, is_dis):
 	'''
 	word: word we need to search
 	sents: List of all the sentences.
@@ -44,21 +54,53 @@ def search_for(word, sents):
 	returns:
 	Howmany instances of word founded. Also prints results. 
 	'''
-	print('searching for' + '.' * 10 + word)
 	first, found = True, 0
-	for ind, j in enumerate(sents):
-		if word in j:
-			found = 1
-			# print(word, 'in:', j)
-			if first:
-				# print('relevent sentence(s) for ', word, ':')
-				first = False
-			if word in dis:
-				print(*sents[ind : ind + 4], sep = '\n')
-			else:
-				print(*sents[ind : ind + 2], sep = '\n')
+	print('searching for' + '.' * 10 + words[0])
+	for word in words:
+		for ind, j in enumerate(sents):
+			if word in j:
+				print(j)
+				found = 1
+				# print(word, 'in:', j)
+				if first:
+					# print('relevent sentence(s) for ', word, ':')
+					first = False
+				if is_dis:
+					print(*[x for x in sents[ind + 1 : ind + 4] if word not in x], sep = '\n')
+					# print(*sents[ind : ind + 4], sep = '\n')
+				else:
+					print(*[x for x in sents[ind + 1 : ind + 2] if word not in x], sep = '\n')
+					# print(*sents[ind : ind + 2], sep = '\n')
+		if found == 1:
+			break
 
 	return found
+
+# found all the words in the give text.
+def found_it(text, imp):
+	'''
+	text: Text read by OCR
+	imp: map of our search list.
+
+	returns:
+	total_found: total occurance founded
+	sents: all the sentences.
+	'''
+	sents = re.split('\n', text)
+	sents = list(filter(None, sents))
+	clean_sents = []
+	for i in sents:
+		if re.search('[a-zA-Z0-9]', i):
+			clean_sents.append(i)
+	sents = clean_sents
+	print(*sents, sep='\n')
+	
+	total_found = 0
+	for k, v in imp.items():
+		found = search_for(words = v[1], sents = sents, is_dis = k[0])
+		total_found += found
+	return total_found, sents
+
 
 # Choose random images form 200 images & check results.
 all_imgs = os.listdir(dirr)
@@ -68,15 +110,7 @@ for _ in range(n_img_to_try):
 	print(str(f) + "."*50)
 	img = Image.open(dirr + '/' + f)
 	text = read_img(img = img)
-	print(text)
-	sents = re.split('\n', text)
-	sents = list(filter(None, sents))
-	# print(*sents, sep='\n')
-	
-	total_found = 0
-	for i in imp:
-		found = search_for(word = i, sents = sents)
-		total_found += found
+	total_found, sents = found_it(text, imp)	
 
 	img.show()
 	# Image might be rotated. So, try different angles.
@@ -84,30 +118,18 @@ for _ in range(n_img_to_try):
 		print('Failed to found more than 2. Rotating by 270')
 		img1 = img.transpose(Image.ROTATE_270)
 		text = read_img(img = img1)
-		print(text)
-		sents = re.split('\n', text)
-		sents = list(filter(None, sents))
-		total_found = 0
-		for i in imp:
-			found = search_for(i, sents)
-			total_found += found
-
+		total_found, sents = found_it(text, imp)
 		img1.show()
+
 		if total_found < rotate_thresh:
 			print('Again failed to found more than 2. Rotating by 90')
 			img1 = img.transpose(Image.ROTATE_90)
 			text = read_img(img = img1)
-			print(text)
-			sents = re.split('\n', text)
-			sents = list(filter(None, sents))
-			total_found = 0
-			for i in imp:
-				found = search_for(i, sents)
-				total_found += found
-			
+			total_found, sents = found_it(text, imp)
 			img1.show()
-			if total_found < 2: 
-				print('BAD QUALITY') 
+			
+			if total_found < rotate_thresh: 
+				print('BAD QUALITY!') 
 	
 	words = [i.split() for i in sents]
 	words = list(itertools.chain.from_iterable(words))   						# flatten
