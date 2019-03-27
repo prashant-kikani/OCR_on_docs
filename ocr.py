@@ -23,7 +23,6 @@ imp = {
 	'discription': (True, ['discription']) 
 }
 
-hor_proj_thresh = 30000   # rotate image if horizontal projection standerd deviation is less than this.
 rotate_thresh = 2	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
 
 
@@ -112,14 +111,16 @@ def is_rotate(path):
 	img = cv2.imread(path, 0)
 	print('img shape', img.shape)
 	# Also one other method is hough transform.
-	proj = np.sum(img, 1)
-	print(proj.shape)
-	std = proj.std() # / (img.shape[0])
-	print('std', std)
-	if std > hor_proj_thresh:
+	proj_h = np.sum(img, 1)				# horizontal projection
+	proj_v = np.sum(img, 0)				# vertical projection
+
+	print(proj_h.shape, proj_v.shape)
+	std_h = proj_h.std() # / (img.shape[0])
+	std_v = proj_v.std() # / (img.shape[0])
+	print('std_h', std_h, 'std_v', std_v)
+	if std_h > std_v:					# if std_h is more, image is okay. Otherwise we need to rotate it.
 		return False
 	return True
-
 
 def dilate_erode(path):
 	img = cv2.imread(path, 0)
@@ -158,7 +159,7 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + f # dirr + '/' + '2216_5.jpg'
+	img_name = dirr + '/' + '1644_3.jpg' # dirr + '/' + '2216_5.jpg'
 	dilate_erode(img_name)
 	rotate_ans = is_rotate(path = img_name)
 	img = Image.open(img_name)
