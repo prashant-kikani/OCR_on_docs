@@ -1,6 +1,5 @@
-import time
 from PIL import Image
-import cv2
+import cv2, shutil, time
 import pytesseract, os, re, itertools
 import numpy as np
 
@@ -18,7 +17,7 @@ imp = {
 	'departure': (False, ['departure', 'loading', 'discharge', 'origin']),
 	'agent': (True, ['agent']),
 	'shipper': (True, ['shipper', 'shpr']),
-	'consignee': (True, ['consignee', 'cons']),
+	'consignee': (True, ['consignee', 'cons', 'consigned']),
 	'weight': (False, ['weight', 'wght', 'g.w', 'kilo', 'kgs']),
 	'discription': (True, ['discription', 'detail']) 
 }
@@ -124,23 +123,42 @@ def is_rotate(path):
 		return False
 	return True
 
-def dilate_erode(path):
-	img = cv2.imread(path, 0)
+
+def dilate_erode(img):
 	cv2.namedWindow('img', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('img', 800,800)
 	cv2.imwrite('img.jpg', img)
 	cv2.imshow('img', img)
 	
 	# kernel = np.ones((5,5),np.uint8)
-	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 10))
-	dil = cv2.erode(img, kernel, iterations = 3)
+	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 15)) # size of kernel differs image by image. if image is dense, size less, else large.
+	dil = cv2.erode(img, kernel, iterations = 2) # no of iterations also depends on image.
 	cv2.namedWindow('erode', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('erode', 800,800)
 	cv2.imwrite('mask.jpg', dil)
 	cv2.imshow('erode', dil)
 
-	_, contours, hierarchy = cv2.findContours(dil, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-	cv2.drawContours(img, contours, -1, (0, 0, 255), 3)
+	_, contours, hierarchy = cv2.findContours(dil, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE) # cv2.RETR_EXTERNAL, cv2.RETR_TREE
+	print('total contours:', len(contours))
+	# print(contours)
+	
+	# make a dir if not, to save output contours. (i.e. TEXT CLUSTERS)
+	if not os.path.exists('contours'):
+		os.makedirs('contours')
+	
+	try:
+		for f in os.listdir('contours'):
+			os.remove('contours/' + f)
+	except:
+		pass
+
+	for idx, c in enumerate(contours):
+		x, y, w, h = cv2.boundingRect(c)
+		if w > 60 and h > 30:
+			new_img = img[y : y + h,x : x + w]
+			cv2.imwrite('contours/' + str(idx) + '.png', new_img)
+
+	cv2.drawContours(img, contours, -1, (0, 255, 0), 3)
 	cv2.namedWindow('final', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('final', 800,800)
 	cv2.imwrite('contours.jpg', img)
@@ -166,8 +184,9 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + f 
-	dilate_erode(img_name)
+	img_name = dirr + '/' + f  # dirr + '/' + f 
+	img = cv2.imread(img_name, 0)
+	dilate_erode(img)
 	# '''
 	rotate_ans = is_rotate(path = img_name)
 	img = Image.open(img_name)
@@ -182,13 +201,29 @@ for _ in range(no_img_to_try):
 	if total_found == 0: 				# if we didn't find anything
 		if not rotate_ans:				# if std_h is higher than std_v, image must be 180 degree rotated
 			img1 = img.transpose(Image.ROTATE_180)
+
+			pil_image = img1.convert('RGB')
+			open_cv_image = np.array(pil_image)
+			open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
+			# open_cv_image = open_cv_image[:, :, ::-1].copy() 
+
+			print('open_cv_image', open_cv_image.shape)
+			
+			dilate_erode(open_cv_image)
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
 			img1.show()
 		else:							# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
-			print('Failed to found more than 2. Image might be rotated. Rotating by 90')
+			print('Failed to found more than 2. Image might be rotated. Rotating actual image by 90')
 			img = Image.open(img_name)
 			img1 = img.transpose(Image.ROTATE_90)
+
+			pil_image = img1.convert('RGB')
+			open_cv_image = np.array(pil_image)
+			open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
+			print('open_cv_image', open_cv_image.shape)
+
+			dilate_erode(open_cv_image)
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
 			img1.show()
