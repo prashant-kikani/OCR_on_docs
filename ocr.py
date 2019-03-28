@@ -14,13 +14,13 @@ Shipper, Consignee, Chargeable Weight, Product Description
 # Format is, key : a tuple. 1st element of tuple is bool showing whether its distributive word or not. 2nd element is, all the synonyms.
 imp = {
 	'mawb': (False, ['mawb', 'master', 'awb', 'airway', 'bill']),
-	'destination': (False, ['destination', 'dst']),
+	'destination': (False, ['destination', 'dst', 'unloading']),
 	'departure': (False, ['departure', 'loading', 'discharge', 'origin']),
 	'agent': (True, ['agent']),
 	'shipper': (True, ['shipper', 'shpr']),
 	'consignee': (True, ['consignee', 'cons']),
 	'weight': (False, ['weight', 'wght', 'g.w', 'kilo', 'kgs']),
-	'discription': (True, ['discription']) 
+	'discription': (True, ['discription', 'detail']) 
 }
 
 # Only using this if horizontal flipping is there.
@@ -43,7 +43,7 @@ def read_img(img):
 	text in the img.
 	'''
 	text = pytesseract.image_to_string(img, lang='eng')
-	text = re.sub(r'[^\x00-\x7F]+', '', text)                                  # remove non-ascii chars.
+	text = re.sub(r'[^\x00-\x7F]+', '', text)	# remove non-ascii chars.
 	return text.lower()
 
 # search for a word in given sentences.
@@ -161,7 +161,7 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + f # dirr + '/' + '2216_5.jpg'
+	img_name = dirr + '/' + f 
 	dilate_erode(img_name)
 	rotate_ans = is_rotate(path = img_name)
 	img = Image.open(img_name)
@@ -173,13 +173,13 @@ for _ in range(no_img_to_try):
 	img.show()
 
 	# Image might be rotated. So, try different angles.
-	if total_found == 0: 					# if we didn't find anything
-		if not rotate_ans:					# if std_h is higher than std_v, image must be 180 degree rotated
+	if total_found == 0: 				# if we didn't find anything
+		if not rotate_ans:				# if std_h is higher than std_v, image must be 180 degree rotated
 			img1 = img.transpose(Image.ROTATE_180)
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
 			img1.show()
-		else:								# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
+		else:							# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
 			print('Failed to found more than 2. Image might be rotated. Rotating by 90')
 			img = Image.open(img_name)
 			img1 = img.transpose(Image.ROTATE_90)
