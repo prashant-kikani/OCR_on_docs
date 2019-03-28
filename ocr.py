@@ -187,8 +187,8 @@ for _ in range(no_img_to_try):
 			total_found, sents = found_it(text, imp)
 			img1.show()
 
-			if total_found == 0: 
-				print('BAD QUALITY!') 
+		if total_found == 0: 
+			print('BAD QUALITY!') 
 	
 	words = [i.split() for i in sents]
 	words = list(itertools.chain.from_iterable(words))   						# flatten
