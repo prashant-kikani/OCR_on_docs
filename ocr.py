@@ -126,20 +126,25 @@ def is_rotate(path):
 
 def dilate_erode(path):
 	img = cv2.imread(path, 0)
+	cv2.namedWindow('img', cv2.WINDOW_NORMAL)
+	cv2.resizeWindow('img', 800,800)
+	cv2.imwrite('img.jpg', img)
+	cv2.imshow('img', img)
+	
 	# kernel = np.ones((5,5),np.uint8)
-	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 5))
-	dil = cv2.erode(img, kernel, iterations = 1)
+	kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 10))
+	dil = cv2.erode(img, kernel, iterations = 3)
 	cv2.namedWindow('erode', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('erode', 800,800)
+	cv2.imwrite('mask.jpg', dil)
 	cv2.imshow('erode', dil)
-	_, contours, hierarchy = cv2.findContours(dil, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-	im2 = img.copy()
-	for cnt in contours:
-	        x, y, w, h = cv2.boundingRect(cnt)
-	        cv2.rectangle(im2, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+	_, contours, hierarchy = cv2.findContours(dil, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+	cv2.drawContours(img, contours, -1, (0, 0, 255), 3)
 	cv2.namedWindow('final', cv2.WINDOW_NORMAL)
 	cv2.resizeWindow('final', 800,800)
-	cv2.imshow('final', im2)
+	cv2.imwrite('contours.jpg', img)
+	cv2.imshow('final', img)
 
 	'''
 	erd = cv2.erode(img, kernel, iterations = 1)
@@ -163,13 +168,14 @@ for _ in range(no_img_to_try):
 	print(str(f) + "."*50)
 	img_name = dirr + '/' + f 
 	dilate_erode(img_name)
+	# '''
 	rotate_ans = is_rotate(path = img_name)
 	img = Image.open(img_name)
 	if rotate_ans:
 		img = img.transpose(Image.ROTATE_270)
 
 	text = read_img(img = img)
-	total_found, sents = found_it(text, imp)	
+	total_found, sents = found_it(text, imp)
 	img.show()
 
 	# Image might be rotated. So, try different angles.
@@ -193,7 +199,7 @@ for _ in range(no_img_to_try):
 	words = [i.split() for i in sents]
 	words = list(itertools.chain.from_iterable(words))   						# flatten
 	# all the word level work do here.
-
+	# '''
 
 
 # To dictionary correct a word. i.e. find the closest matched word in the sentences. 
