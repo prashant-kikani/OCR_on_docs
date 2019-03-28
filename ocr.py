@@ -123,6 +123,18 @@ def is_rotate(path):
 		return False
 	return True
 
+def pil_to_cv2gray(img1):
+	'''
+	img1: PIL Image 
+
+	return
+	openCV gray image
+	'''
+	pil_image = img1.convert('RGB')
+	open_cv_image = np.array(pil_image)
+	open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
+	return open_cv_image
+
 
 def dilate_erode(img):
 	cv2.namedWindow('img', cv2.WINDOW_NORMAL)
@@ -152,6 +164,7 @@ def dilate_erode(img):
 	except:
 		pass
 
+	# Crop TEXT CLUSTERS from original image & save it.
 	for idx, c in enumerate(contours):
 		x, y, w, h = cv2.boundingRect(c)
 		if w > 60 and h > 30:
@@ -184,7 +197,7 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + f  # dirr + '/' + f 
+	img_name = dirr + '/' + f
 	img = cv2.imread(img_name, 0)
 	dilate_erode(img)
 	# '''
@@ -202,13 +215,8 @@ for _ in range(no_img_to_try):
 		if not rotate_ans:				# if std_h is higher than std_v, image must be 180 degree rotated
 			img1 = img.transpose(Image.ROTATE_180)
 
-			pil_image = img1.convert('RGB')
-			open_cv_image = np.array(pil_image)
-			open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-			# open_cv_image = open_cv_image[:, :, ::-1].copy() 
+			open_cv_image = pil_to_cv2gray(img1)
 
-			print('open_cv_image', open_cv_image.shape)
-			
 			dilate_erode(open_cv_image)
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
@@ -218,11 +226,8 @@ for _ in range(no_img_to_try):
 			img = Image.open(img_name)
 			img1 = img.transpose(Image.ROTATE_90)
 
-			pil_image = img1.convert('RGB')
-			open_cv_image = np.array(pil_image)
-			open_cv_image = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
-			print('open_cv_image', open_cv_image.shape)
-
+			open_cv_image = pil_to_cv2gray(img1)
+			
 			dilate_erode(open_cv_image)
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
