@@ -11,10 +11,10 @@ Shipper, Consignee, Chargeable Weight, Product Description
 
 '''
 
-# Format is, key : a tuple. 1st element of tuple is bool showing whether its distributive word or not. 2nd item is, all the synonyms.
+# Format is, key : a tuple. 1st element of tuple is bool showing whether its distributive word or not. 2nd element is, all the synonyms.
 imp = {
 	'mawb': (False, ['mawb', 'master', 'awb', 'airway', 'bill']),
-	'destination': (False, ['destination']),
+	'destination': (False, ['destination', 'dst']),
 	'departure': (False, ['departure', 'loading', 'discharge', 'origin']),
 	'agent': (True, ['agent']),
 	'shipper': (True, ['shipper', 'shpr']),
@@ -24,12 +24,12 @@ imp = {
 }
 
 # Only using this if horizontal flipping is there.
-rotate_thresh = 2	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
+# rotate_thresh = 1	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
 
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 dirr = 'all'
-no_img_to_try = 1	# Test run tesseract on these many randomly selected images from ACM 200 images.
+no_img_to_try = 1	# Test run of tesseract on these many randomly selected images from ACM 200 images.
 
 # Improvement: Do for each possible font to reduce time.
 # Preprocessing on image : like thresholding on image. To check whether it improves performance or not.
@@ -51,6 +51,7 @@ def search_for(words, sents, is_dis):
 	'''
 	word: word we need to search
 	sents: List of all the sentences.
+	is_dis: word is distripctive or not.
 
 	returns:
 	Howmany instances of word founded. Also prints results. 
@@ -79,7 +80,7 @@ def search_for(words, sents, is_dis):
 def found_it(text, imp):
 	'''
 	text: Text read by OCR
-	imp: map of our search list words.
+	imp: dictionary of our search list words.
 
 	returns:
 	total_found: total occurance founded
@@ -112,8 +113,8 @@ def is_rotate(path):
 	img = cv2.imread(path, 0)
 	print('img shape', img.shape)
 	# Also one other method is hough transform.
-	proj_h = np.sum(img, 1)				# horizontal projection
-	proj_v = np.sum(img, 0)				# vertical projection
+	proj_h = np.sum(img, 1)			# horizontal projection
+	proj_v = np.sum(img, 0)			# vertical projection
 
 	print(proj_h.shape, proj_v.shape)
 	std_h = proj_h.std() # / (img.shape[0])
@@ -160,7 +161,7 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + '1644_3.jpg' # dirr + '/' + '2216_5.jpg'
+	img_name = dirr + '/' + f # dirr + '/' + '2216_5.jpg'
 	dilate_erode(img_name)
 	rotate_ans = is_rotate(path = img_name)
 	img = Image.open(img_name)
@@ -172,22 +173,21 @@ for _ in range(no_img_to_try):
 	img.show()
 
 	# Image might be rotated. So, try different angles.
-	if total_found < rotate_thresh: 
-		print('Failed to found more than 2. Image might be rotated. Rotating by 90')
-		img = Image.open(img_name)
-		img1 = img.transpose(Image.ROTATE_90)
-		text = read_img(img = img1)
-		total_found, sents = found_it(text, imp)
-		img1.show()
-
-		if total_found < rotate_thresh:
-			print('Again failed to found more than 2. Image might be rotated. Rotating by 270')
-			img1 = img.transpose(Image.ROTATE_270)
+	if total_found == 0: 					# if we didn't find anything
+		if not rotate_ans:					# if std_h is higher than std_v, image must be 180 degree rotated
+			img1 = img.transpose(Image.ROTATE_180)
+			text = read_img(img = img1)
+			total_found, sents = found_it(text, imp)
+			img1.show()
+		else:								# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
+			print('Failed to found more than 2. Image might be rotated. Rotating by 90')
+			img = Image.open(img_name)
+			img1 = img.transpose(Image.ROTATE_90)
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
 			img1.show()
 
-			if total_found < rotate_thresh: 
+			if total_found == 0: 
 				print('BAD QUALITY!') 
 	
 	words = [i.split() for i in sents]
