@@ -205,14 +205,16 @@ for _ in range(no_img_to_try):
 	img = Image.open(img_name)
 	if rotate_ans:
 		img = img.transpose(Image.ROTATE_270)
-
+		open_cv_image = pil_to_cv2gray(img)
+		dilate_erode(open_cv_image)	# just to save text clusters.
+	
 	text = read_img(img = img)
 	total_found, sents = found_it(text, imp)
 	img.show()
 
 	# Image might be rotated. So, try different angles.
-	if total_found == 0: 				# if we didn't find anything
-		if not rotate_ans:				# if std_h is higher than std_v, image must be 180 degree rotated
+	if total_found == 0: 		# if we didn't find anything
+		if not rotate_ans:		# if std_h is higher than std_v, image must be 180 degree rotated
 			img1 = img.transpose(Image.ROTATE_180)
 
 			open_cv_image = pil_to_cv2gray(img1)
@@ -221,7 +223,7 @@ for _ in range(no_img_to_try):
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp)
 			img1.show()
-		else:							# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
+		else:					# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
 			print('Failed to found more than 2. Image might be rotated. Rotating actual image by 90')
 			img = Image.open(img_name)
 			img1 = img.transpose(Image.ROTATE_90)
