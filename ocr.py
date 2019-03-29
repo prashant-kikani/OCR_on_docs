@@ -22,10 +22,6 @@ imp = {
 	'discription': (True, ['discription', 'detail']) 
 }
 
-# Only using this if horizontal flipping is there.
-# rotate_thresh = 1	# if less than this items found, then rotate image might be rotated. We rotate by 270 or 90 degree & try again.
-
-
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 dirr = 'all'
 no_img_to_try = 1	# Test run of tesseract on these many randomly selected images from ACM 200 images.
@@ -46,40 +42,52 @@ def read_img(img):
 	return text.lower()
 
 # search for a word in given sentences.
-def search_for(words, sents, is_dis):
+def search_for(words, sents, is_dis, is_whole = True):
 	'''
 	word: word we need to search
 	sents: List of all the sentences.
 	is_dis: word is distripctive or not.
+	is_whole: Whether we are doing on whole image or just a small text contour
 
 	returns:
 	Howmany instances of word founded. Also prints results. 
 	'''
-	first, found = True, 0
+	first, found = True, False
+	
 	print('searching for' + '.' * 10 + words[0])
 	for word in words:
 		for ind, j in enumerate(sents):
 			if word in j:
 				print(j)
-				found = 1
+				found = True
 				if first:
 					first = False
+
+				if not is_whole:
+					print(*sents, sep = '\n')
+					continue
+
 				if is_dis:
-					print(*[x for x in sents[ind + 1 : ind + 3] if word not in x], sep = '\n')
-					# print(*sents[ind : ind + 4], sep = '\n')
+					if is_whole:
+						print(*[x for x in sents[ind + 1 : ind + 3] if word not in x], sep = '\n')
+						# print(*sents[ind : ind + 4], sep = '\n')
 				else:
-					print(*[x for x in sents[ind + 1 : ind + 3] if word not in x], sep = '\n')
-					# print(*sents[ind : ind + 2], sep = '\n')
-		if found == 1:
+					if is_whole:
+						print(*[x for x in sents[ind + 1 : ind + 3] if word not in x], sep = '\n')
+						# print(*sents[ind : ind + 2], sep = '\n')
+		if found:
 			break
-	print()
-	return found
+
+	if is_whole:
+		print()	
+	return int(found)
 
 # found all the words in the give text.
-def found_it(text, imp):
+def found_it(text, imp, is_whole = True):
 	'''
 	text: Text read by OCR
 	imp: dictionary of our search list words.
+	is_whole: Whether we are doing on whole image or just a small text contour
 
 	returns:
 	total_found: total occurance founded
@@ -93,11 +101,12 @@ def found_it(text, imp):
 		if re.search('[a-zA-Z0-9]', i):
 			clean_sents.append(i)
 	sents = clean_sents
-	print(*sents, sep='\n')
+	if is_whole:
+		print(*sents, sep='\n')
 	
 	total_found = 0
 	for k, v in imp.items():
-		found = search_for(words = v[1], sents = sents, is_dis = v[0])
+		found = search_for(words = v[1], sents = sents, is_dis = v[0], is_whole = is_whole)
 		total_found += found
 	return total_found, sents
 
@@ -167,7 +176,7 @@ def dilate_erode(img):
 	# Crop TEXT CLUSTERS from original image & save it.
 	for idx, c in enumerate(contours):
 		x, y, w, h = cv2.boundingRect(c)
-		if w > 60 and h > 30:
+		if w > 30 and h > 30:
 			new_img = img[y : y + h,x : x + w]
 			cv2.imwrite('contours/' + str(idx) + '.png', new_img)
 
@@ -197,7 +206,7 @@ for _ in range(no_img_to_try):
 	ra_ind = np.random.randint(0, len(all_imgs))
 	f = all_imgs[ra_ind]
 	print(str(f) + "."*50)
-	img_name = dirr + '/' + f
+	img_name = dirr + '/' + f 	# '80_9.jpg' 
 	img = cv2.imread(img_name, 0)
 	dilate_erode(img)
 	# '''
@@ -209,7 +218,7 @@ for _ in range(no_img_to_try):
 		dilate_erode(open_cv_image)	# just to save text clusters.
 	
 	text = read_img(img = img)
-	total_found, sents = found_it(text, imp)
+	total_found, sents = found_it(text, imp, True)
 	img.show()
 
 	# Image might be rotated. So, try different angles.
@@ -221,7 +230,7 @@ for _ in range(no_img_to_try):
 
 			dilate_erode(open_cv_image)
 			text = read_img(img = img1)
-			total_found, sents = found_it(text, imp)
+			total_found, sents = found_it(text, imp, True)
 			img1.show()
 		else:					# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
 			print('Failed to found more than 2. Image might be rotated. Rotating actual image by 90')
@@ -232,12 +241,24 @@ for _ in range(no_img_to_try):
 			
 			dilate_erode(open_cv_image)
 			text = read_img(img = img1)
-			total_found, sents = found_it(text, imp)
+			total_found, sents = found_it(text, imp, True)
 			img1.show()
 
 		if total_found == 0: 
 			print('BAD QUALITY!') 
 	
+	# AT THIS POINT, WE'LL HAVE ALL THE TEXT CLUSTERS SAVED IN CONTOURS FOLDER.
+
+	# Go through each cluster photo which we cropped from original image.
+	print('going through TEXT contours' + '.'*50)
+	for i in os.listdir('contours'):
+		print(i + '.'*50)
+		img = Image.open('contours/' + i) 
+		text = read_img(img = img)
+		total_found, sents = found_it(text, imp, False)
+		if total_found != 0:
+			img.show()
+
 	words = [i.split() for i in sents]
 	words = list(itertools.chain.from_iterable(words))   						# flatten
 	# all the word level work do here.
