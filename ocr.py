@@ -60,7 +60,7 @@ def search_for(words, sents, is_dis, is_whole = True):
 			if word in j:
 				if is_whole:
 					print(j)
-				
+
 				found = True
 				if first:
 					first = False
@@ -235,7 +235,7 @@ for _ in range(no_img_to_try):
 			text = read_img(img = img1)
 			total_found, sents = found_it(text, imp, True)
 			img1.show()
-		else:					# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
+		else:	# if std_v is higher, we already have rotated by 270 degree, then also we didn't find anything. so it must be 90 degree rotated
 			img = Image.open(img_name)
 			img1 = img.transpose(Image.ROTATE_90)
 
