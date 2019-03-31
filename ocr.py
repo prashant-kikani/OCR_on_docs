@@ -58,7 +58,9 @@ def search_for(words, sents, is_dis, is_whole = True):
 	for word in words:
 		for ind, j in enumerate(sents):
 			if word in j:
-				print(j)
+				if is_whole:
+					print(j)
+				
 				found = True
 				if first:
 					first = False
@@ -223,6 +225,7 @@ for _ in range(no_img_to_try):
 
 	# Image might be rotated. So, try different angles.
 	if total_found == 0: 		# if we didn't find anything
+		print('Failed to found. Image might be rotated')
 		if not rotate_ans:		# if std_h is higher than std_v, image must be 180 degree rotated
 			img1 = img.transpose(Image.ROTATE_180)
 
@@ -233,7 +236,6 @@ for _ in range(no_img_to_try):
 			total_found, sents = found_it(text, imp, True)
 			img1.show()
 		else:					# if std_v is higher, we already have rotated by 270 degree, so it must be 90 degree rotated
-			print('Failed to found more than 2. Image might be rotated. Rotating actual image by 90')
 			img = Image.open(img_name)
 			img1 = img.transpose(Image.ROTATE_90)
 
